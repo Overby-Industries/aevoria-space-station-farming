@@ -83,10 +83,10 @@ ranges used in controlled-environment growing, not a validated agronomic model. 
 
 ## Roadmap
 
-Crew food demand, equipment faults and events, a save file, sound, tuning, and a licence. The Mars sibling game,
+Crew food demand, equipment faults and events, a save file, sound and tuning. The Mars sibling game,
 [mars-farming](https://github.com/Overby-Industries/mars-farming), started as a copy of this core and adds a sun and
 dust storms to the LEDs; the two share no library yet, so a fix in one has to be carried to the other by hand.
 
 ## License
 
-Not chosen yet.
+[Apache 2.0](LICENSE), like the other software repositories of Overby Industries. It covers the code and the graphics and models the code generates. It does not license the project's name (section 6 of the licence). Built on the Godot Engine and godot-cpp, both MIT-licensed.
