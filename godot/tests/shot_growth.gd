@@ -1,6 +1,12 @@
 extends SceneTree
-# A scripted play session for the screenshot: sow all four beds with different crops, run 40 days with automatic
-# irrigation, select a ready plant, and capture the frame. Used to eyeball the whole scene.
+# A scripted play session for the screenshot: sow all four beds with different crops, run some days (40 by default)
+# with automatic irrigation, select a ready plant, and capture the frame (real renderer, off-screen). Used to eyeball
+# the whole scene.
+#
+#   Godot --path godot --resolution 1600x900 --position -3000,-3000 -s res://tests/shot_growth.gd -- <name> [days]
+#
+# Saves godot/shots/<name>.png (that folder is git-ignored). A name ending in .jpg is saved as a small JPEG instead,
+# which is how the README image is made.
 func _initialize() -> void:
 	_run()
 func _run() -> void:
@@ -27,7 +33,9 @@ func _run() -> void:
 		await process_frame
 	await RenderingServer.frame_post_draw
 	var img: Image = root.get_viewport().get_texture().get_image()
-	var path := ProjectSettings.globalize_path("res://shots/%s.png" % OS.get_cmdline_user_args()[0])
+	var shot_name: String = OS.get_cmdline_user_args()[0]
+	var jpg := shot_name.ends_with(".jpg")      # a name ending in .jpg is saved as a small JPEG (README images)
+	var path := ProjectSettings.globalize_path("res://shots/%s" % (shot_name if jpg else shot_name + ".png"))
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
-	print("saved ", path, " err=", img.save_png(path))
+	print("saved ", path, " err=", img.save_jpg(path, 0.88) if jpg else img.save_png(path))
 	quit(0)

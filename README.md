@@ -9,6 +9,8 @@ with a C++ GDExtension, in the same code-generated graphics style as
 **Status: an early start.** One bay, four crops, a growth model with tests, procedural plants and props, and a
 playable greenhouse scene. Not a finished game. See [docs/DESIGN.md](docs/DESIGN.md) for what exists and what does not.
 
+![The hydroponics bay after 40 days of play, with lettuce, radishes, potatoes and tomatoes growing](docs/greenhouse.jpg)
+
 ## What is here
 
 | Path | What it is |
@@ -59,7 +61,9 @@ godot --headless --path godot -s res://tests/greenhouse_test.gd
 On a fresh checkout the first `--import` can exit with a crash code (on Windows with Godot 4.6.3 it does, from
 inside Godot itself, after the import has finished); run it a second time and it exits cleanly.
 
-`godot/tests/shot.gd` captures a frame of any scene with the real renderer, for looking at the art.
+`godot/tests/shot.gd` captures a frame of any scene with the real renderer, and `shot_growth.gd` plays a short
+session (sow, grow some days) and captures that, for looking at the art. The picture at the top is
+`shot_growth.gd -- greenhouse.jpg 40`: a name ending in `.jpg` is saved as a small JPEG into `godot/shots/`.
 
 ## A note on the numbers
 
