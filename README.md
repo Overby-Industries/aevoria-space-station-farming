@@ -65,6 +65,17 @@ inside Godot itself, after the import has finished); run it a second time and it
 session (sow, grow some days) and captures that, for looking at the art. The picture at the top is
 `shot_growth.gd -- greenhouse.jpg 40`: a name ending in `.jpg` is saved as a small JPEG into `godot/shots/`.
 
+## Release to itch.io
+
+The game is on itch.io at [overby-industries.itch.io/aevoria-space-station-farming](https://overby-industries.itch.io/aevoria-space-station-farming). `deploy_to_itch.ps1` builds the extension (debug, which the editor loads to export, and release, which the game ships), exports the Windows release build to `godot/builds/windows-release/`, starts the exported game headless as a smoke test, and pushes it with [butler](https://itch.io/docs/butler/):
+
+```
+powershell -File deploy_to_itch.ps1 -NoPush    # everything except publishing: the way to check that it works
+powershell -File deploy_to_itch.ps1            # build, export, test, push (public: only when you mean to release)
+```
+
+It needs Godot 4.6.3 with its Windows export templates, SCons and MSVC (as for building above), and, unless you use `-NoPush`, butler logged in (`butler login`) as an account that may push to the page. Each tool is found from a parameter, an environment variable (`GODOT_EXE`, `BUTLER_EXE`, `PYTHON`) or the usual places; the script's header says how. After a push, `sync_version.ps1` writes the itch.io build number into `godot/export_presets.cfg` as version `0.1.N`: commit that as "Sync version to itch.io build #N", together with any `.uid` or `.import` files Godot wrote. The first release build also compiles godot-cpp for `template_release`, which takes a long time.
+
 ## A note on the numbers
 
 Every growth time, light need and yield in `core/species.hpp` is a **design value**: a starting point inside the
