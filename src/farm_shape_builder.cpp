@@ -32,11 +32,11 @@ float num(const Dictionary &d, const char *key, double fallback) {
     return static_cast<float>(static_cast<double>(d.get(key, fallback)));
 }
 
-// The Aevoria palette: midnight blue, sunrise gold, cloud white.
-const Color kCloud(0.914f, 0.933f, 0.961f);
-const Color kGold(0.91f, 0.64f, 0.24f);
-const Color kMidnight(0.07f, 0.10f, 0.20f);
-const Color kSteel(0.55f, 0.58f, 0.64f);
+// The station's palette: light aluminium, warm amber, graphite and steel (blue is only a small status accent).
+const Color kAlu(0.83f, 0.85f, 0.87f);
+const Color kAmber(0.89f, 0.52f, 0.11f);
+const Color kGraphite(0.18f, 0.19f, 0.21f);
+const Color kSteel(0.61f, 0.63f, 0.66f);
 
 Ref<StandardMaterial3D> vertex_color_material(float roughness, float metallic) {
     Ref<StandardMaterial3D> m;
@@ -96,28 +96,28 @@ Planter planter_of(const Dictionary &r) {
 
 Node3D *build_planter(const Dictionary &r) {
     const Planter p = planter_of(r);
-    const Color body = r.get("albedo_color", kCloud);
-    const Color gold = r.get("accent_color", kGold);
-    const Color base = r.get("base_color", kMidnight);
+    const Color body = r.get("albedo_color", kAlu);
+    const Color amber = r.get("accent_color", kAmber);
+    const Color base = r.get("base_color", kGraphite);
     const Color soil = r.get("soil_color", Color(0.17f, 0.13f, 0.09f));
     const float L = p.length, H = p.height, W = p.width, t = p.wall;
 
     MeshBuilder mb;
-    mb.add_surface(vertex_color_material(0.5f, 0.1f));
+    mb.add_surface(vertex_color_material(0.38f, 0.7f));
     mb.box(Vector3(0, 0.01f, 0), Vector3(L, 0.02f, W), base);                                     // floor slab
     mb.box(Vector3(0, H * 0.5f, W * 0.5f - t * 0.5f), Vector3(L, H, t), body);                    // long walls
     mb.box(Vector3(0, H * 0.5f, -W * 0.5f + t * 0.5f), Vector3(L, H, t), body);
     mb.box(Vector3(L * 0.5f - t * 0.5f, H * 0.5f, 0), Vector3(t, H, W - 2.0f * t), body);         // end walls
     mb.box(Vector3(-L * 0.5f + t * 0.5f, H * 0.5f, 0), Vector3(t, H, W - 2.0f * t), body);
-    // the gold rim: a slightly wider lip around the top edge
+    // the amber rim: a slightly wider lip around the top edge
     const float lip = 0.016f, over = 0.012f;
-    mb.box(Vector3(0, H - lip * 0.5f, W * 0.5f - t * 0.5f + over * 0.5f), Vector3(L + 2.0f * over, lip, t + over), gold);
-    mb.box(Vector3(0, H - lip * 0.5f, -W * 0.5f + t * 0.5f - over * 0.5f), Vector3(L + 2.0f * over, lip, t + over), gold);
-    mb.box(Vector3(L * 0.5f - t * 0.5f + over * 0.5f, H - lip * 0.5f, 0), Vector3(t + over, lip, W - 2.0f * t), gold);
-    mb.box(Vector3(-L * 0.5f + t * 0.5f - over * 0.5f, H - lip * 0.5f, 0), Vector3(t + over, lip, W - 2.0f * t), gold);
-    // a drain stub and a gold band on the +x end
+    mb.box(Vector3(0, H - lip * 0.5f, W * 0.5f - t * 0.5f + over * 0.5f), Vector3(L + 2.0f * over, lip, t + over), amber);
+    mb.box(Vector3(0, H - lip * 0.5f, -W * 0.5f + t * 0.5f - over * 0.5f), Vector3(L + 2.0f * over, lip, t + over), amber);
+    mb.box(Vector3(L * 0.5f - t * 0.5f + over * 0.5f, H - lip * 0.5f, 0), Vector3(t + over, lip, W - 2.0f * t), amber);
+    mb.box(Vector3(-L * 0.5f + t * 0.5f - over * 0.5f, H - lip * 0.5f, 0), Vector3(t + over, lip, W - 2.0f * t), amber);
+    // a drain stub and a amber band on the +x end
     mb.frustum(Vector3(L * 0.5f, 0.06f, 0), Vector3(1, 0, 0), 0.04f, 0.016f, 0.016f, 10, kSteel, kSteel);
-    mb.box(Vector3(L * 0.5f + 0.0005f, H * 0.5f, 0), Vector3(0.002f, 0.03f, W * 0.7f), gold);
+    mb.box(Vector3(L * 0.5f + 0.0005f, H * 0.5f, 0), Vector3(0.002f, 0.03f, W * 0.7f), amber);
 
     // the soil: one surface with UVs so a "soil" skin can be painted on
     Ref<StandardMaterial3D> soil_mat;
@@ -143,23 +143,23 @@ Node3D *build_planter(const Dictionary &r) {
 
 Node3D *build_grow_light(const Dictionary &r) {
     const float L = num(r, "length", 1.2);
-    const Color body = r.get("albedo_color", kCloud);
-    const Color gold = r.get("accent_color", kGold);
+    const Color body = r.get("albedo_color", kAlu);
+    const Color amber = r.get("accent_color", kAmber);
 
     MeshBuilder mb;
-    mb.add_surface(vertex_color_material(0.4f, 0.2f));
+    mb.add_surface(vertex_color_material(0.35f, 0.6f));
     mb.box(Vector3(0, -0.025f, 0), Vector3(L, 0.05f, 0.11f), body);                               // housing
-    mb.box(Vector3(L * 0.5f + 0.005f, -0.025f, 0), Vector3(0.01f, 0.056f, 0.118f), gold);         // end caps
-    mb.box(Vector3(-L * 0.5f - 0.005f, -0.025f, 0), Vector3(0.01f, 0.056f, 0.118f), gold);
+    mb.box(Vector3(L * 0.5f + 0.005f, -0.025f, 0), Vector3(0.01f, 0.056f, 0.118f), amber);         // end caps
+    mb.box(Vector3(-L * 0.5f - 0.005f, -0.025f, 0), Vector3(0.01f, 0.056f, 0.118f), amber);
     for (int i = -1; i <= 1; i += 2) {                                                            // two hangers
         mb.frustum(Vector3(static_cast<float>(i) * L * 0.33f, 0, 0), Vector3(0, 1, 0), 0.12f, 0.004f, 0.004f, 8, kSteel, kSteel);
     }
 
     Ref<StandardMaterial3D> led;
     led.instantiate();
-    led->set_albedo(Color(0.10f, 0.05f, 0.08f));
+    led->set_albedo(Color(0.10f, 0.09f, 0.07f));
     led->set_feature(BaseMaterial3D::FEATURE_EMISSION, true);
-    led->set_emission(r.get("emission_color", Color(1.0f, 0.60f, 0.86f)));
+    led->set_emission(r.get("emission_color", Color(1.0f, 0.88f, 0.72f)));
     led->set_emission_energy_multiplier(num(r, "emission_energy", 2.5));
     mb.add_surface(led);
     mb.box(Vector3(0, -0.0515f, 0), Vector3(L - 0.04f, 0.003f, 0.085f), Color(1, 1, 1));          // the LED strip
@@ -174,16 +174,16 @@ Node3D *build_tank(const Dictionary &r) {
     const float R = num(r, "radius", 0.35);
     const float H = num(r, "height", 0.9);
     const float dome = std::min(R, num(r, "dome", 0.12) * H);
-    const Color body = r.get("albedo_color", kCloud);
-    const Color gold = r.get("accent_color", kGold);
+    const Color body = r.get("albedo_color", kAlu);
+    const Color amber = r.get("accent_color", kAmber);
 
     MeshBuilder mb;
-    mb.add_surface(vertex_color_material(0.35f, 0.25f));
+    mb.add_surface(vertex_color_material(0.33f, 0.75f));
     mb.frustum(Vector3(0, dome, 0), Vector3(0, 1, 0), H - 2.0f * dome, R, R, 28, body, body, false, false);
     mb.ellipsoid(Vector3(0, H - dome, 0), Vector3(R, dome, R), 28, 8, body, body);
     mb.ellipsoid(Vector3(0, dome, 0), Vector3(R, dome, R), 28, 8, body, body);
-    for (const float f : {0.22f, 0.78f}) {                                                        // two gold bands
-        mb.frustum(Vector3(0, H * f, 0), Vector3(0, 1, 0), 0.035f, R + 0.006f, R + 0.006f, 28, gold, gold);
+    for (const float f : {0.22f, 0.78f}) {                                                        // two amber bands
+        mb.frustum(Vector3(0, H * f, 0), Vector3(0, 1, 0), 0.035f, R + 0.006f, R + 0.006f, 28, amber, amber);
     }
     for (int i = 0; i < 3; ++i) {                                                                 // three legs
         const float a = 6.28318f * static_cast<float>(i) / 3.0f;

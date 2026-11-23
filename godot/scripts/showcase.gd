@@ -24,12 +24,21 @@ func _ready() -> void:
 func _build_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("070b18")
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("5b6fa6")
-	env.ambient_light_energy = 0.55
+	env.background_color = Color("0a0a0b")
+	# a sky nobody sees, for the metal to reflect and the room to be lit by (see greenhouse.gd)
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.80, 0.77, 0.72)
+	sky_mat.sky_horizon_color = Color(0.62, 0.60, 0.57)
+	sky_mat.ground_horizon_color = Color(0.30, 0.30, 0.31)
+	sky_mat.ground_bottom_color = Color(0.08, 0.08, 0.09)
+	var sky := Sky.new()
+	sky.sky_material = sky_mat
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	env.ambient_light_energy = 0.8
 	env.glow_enabled = true
-	env.glow_intensity = 0.6
+	env.glow_intensity = 0.5
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -43,7 +52,7 @@ func _build_environment() -> void:
 
 func _build_table() -> void:
 	add_child(_builder.build_node({"shape": "box", "name": "Table", "size": Vector3(3.0, 0.04, 2.6),
-			"albedo_color": Color("1b2748"), "roughness": 0.6}))
+			"albedo_color": Color("3a3d42"), "roughness": 0.45, "metallic": 0.7}))
 	($Table as Node3D).position = Vector3(1.05, -0.02, -0.2)
 
 func _build_lineup() -> void:
@@ -74,7 +83,7 @@ func _build_props() -> void:
 	light.position = tray.position + Vector3(0, 0.78, 0)
 	add_child(light)
 	var glow := OmniLight3D.new()
-	glow.light_color = Color(1.0, 0.6, 0.86)
+	glow.light_color = Color(1.0, 0.9, 0.76)
 	glow.light_energy = 1.6
 	glow.omni_range = 1.6
 	glow.position = light.position + Vector3(0, -0.12, 0)

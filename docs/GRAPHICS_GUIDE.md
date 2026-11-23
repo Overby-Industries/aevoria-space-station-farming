@@ -2,7 +2,15 @@
 
 The farm follows the same rule as Aevoria Simulator (see its `docs/GRAPHICS_GUIDE.md`): the visuals are
 generated from data. A look is a dictionary; only a genuinely new shape needs C++. Scale is **1 Godot unit =
-1 metre**. The palette is the Aevoric one: midnight blue, sunrise gold, cloud white.
+1 metre**. The station is metal: **brushed steel, graphite and light aluminium** for the hull, deck, benches and
+pipes (metallic 0.65 to 0.9, roughness 0.33 to 0.55), **warm-white light**, **warm amber accents** (`#E8861F`, the
+crew's orange) and the plants' green. Blue is a small accent only: the Earth outside the window, the water gauge, status
+lights. (The Aevoric house palette of midnight blue, sunrise gold and cloud white is kept for the wider franchise; here
+the gold became amber and the blue went into the Earth.) The palette lives in four places: the `MATERIALS` table of
+`blender/build_assets.py`, the colour constants of `src/farm_shape_builder.cpp`, the constants and the environment of
+`godot/scripts/greenhouse.gd` (and `showcase.gd`), and the HUD theme in the same script. The metal reads as metal because
+the room's **sky** (a `ProceduralSkyMaterial` that is never drawn: the background is black space) lights it and is what
+it reflects.
 
 ## Data or code?
 
@@ -14,6 +22,8 @@ generated from data. A look is a dictionary; only a genuinely new shape needs C+
 | Move or add a prop | The scene script | No |
 | Add a new shape, or change how a crop looks | `src/farm_shape_builder.cpp`, `src/plant_meshes.cpp` | Yes |
 | Replace a procedural shape with a modelled one | Add `"model": "res://models/x.glb"` to its recipe | No |
+| Recolour, swap or leave out a part of the astronaut | Its `recipe` (see below) | No |
+| Change the astronaut's shapes | `blender/build_astronaut.py`, then re-export | No (re-import in Godot) |
 
 ## `FarmShapeBuilder`
 
@@ -58,7 +68,7 @@ blender -b --factory-startup --python blender/build_assets.py -- godot/models [a
 | Asset | Replaces | Size and origin |
 |---|---|---|
 | `planter_tray.glb` | `planter_tray` | 1.2 x 0.22 x 0.6 m, origin at the middle of the bottom, soil surface at y = 0.17 m; eight `Slot_0`..`Slot_7` empties exactly where `get_slot_positions()` puts them |
-| `grow_light.glb` | `grow_light` | 1.2 m, origin at the mount point; the `LED_Emissive` material is the glowing panel |
+| `grow_light.glb` | `grow_light` | 1.2 m, origin at the mount point; the `LED_Emissive` material is the glowing panel (warm white) |
 | `water_tank.glb` | `tank` | 0.7 m across, 0.9 m tall, origin at the middle of the bottom; the `Gauge_Emissive` material is the level window |
 | `seed_crate.glb` | (extra) | 0.4 x 0.25 x 0.3 m, origin at the middle of the bottom |
 | `wall_panel.glb` | (extra) | 1.0 x 3.2 x 0.12 m, origin at the middle of the bottom, the room side faces +z; `Strip_Emissive` is the light strip |
@@ -66,9 +76,102 @@ blender -b --factory-startup --python blender/build_assets.py -- godot/models [a
 The geometry in the script is written in Godot space (x right, y up, z toward the viewer) and `G()` converts it
 to Blender's axes, so that the glTF exporter's Y-up conversion lands every point back on the same Godot
 coordinates. Materials are plain Principled BSDF colours with no textures, named so that game code can find
-them (`LED_Emissive`, `Gauge_Emissive`, `Strip_Emissive`). The `.glb.import` files are tracked, so the import
+them (`LED_Emissive`, `Gauge_Emissive`, `Strip_Emissive`) and for what they are made of (`Body_Alu`, `Body_Steel`,
+`Trim_Amber`, `Base_Graphite`, `Steel`, `Dark_Gunmetal`). Bevels are made with `profile=0.5`: Blender's bmesh bevel
+without it is a square-profile, stair-stepped edge. The `.glb.import` files are tracked, so the import
 settings are the same on every checkout. `godot/tests/assets_test.gd` builds each asset both ways and checks
 that the sizes, origins and slots agree.
+
+## The astronaut: a modular suit
+
+![The crew astronaut from the front, the back and three quarters](astronaut.jpg)
+
+A chunky sci-fi EVA suit, about 1.8 m tall (the same crew member in Aevoria Space Station Farming and in Mars Farming):
+white and light-grey **armour** (smooth, glossy painted composite with a few chips and scuffs) over a black **undersuit**
+of a different material, a technical fabric (matte, a woven twill with a heavier ripstop thread every few centimetres, lit
+through a normal map, with corrugated flexible joints at the neck, shoulders, elbows, hips, knees and ankles); orange
+accents (shoulder caps, hips, thigh and shin panels, the strap under the backpack); thin glowing blue light strips and a
+few status lights as small accents; a round helmet with a headset disc on each side and a dark reflective visor; black
+gloves, chunky boots, knee armour; a boxy life-support backpack with a vent grille, valves and a hose; and a green leaf in a
+dark ring on the chest and on the backpack.
+
+It is **not one model**. It is eleven components, each its own glb in `godot/models/astronaut/`, so that each can be
+animated, swapped, recoloured or left out, and the same files serve every game:
+
+| Component | File | Origin (its joint) | Offers sockets for |
+|---|---|---|---|
+| Torso: pelvis, belt, chest, neck | `torso.glb` | the waist | `Socket_Neck`, `Socket_Back`, `Socket_ShoulderR/L`, `Socket_HipR/L`. Has a `Chest` pivot that breathes |
+| Helmet | `helmet.glb` | the base of the neck | |
+| Backpack | `backpack.glb` | the middle of its mounting face | |
+| Arm (right, left) | `arm_r.glb`, `arm_l.glb` | the shoulder | `Socket_WristR/L`. Has a `ForearmR/L` pivot at the elbow |
+| Glove (right, left) | `glove_r.glb`, `glove_l.glb` | the wrist | |
+| Leg (right, left) | `leg_r.glb`, `leg_l.glb` | the hip | `Socket_AnkleR/L`. Has a `ShinR/L` pivot at the knee |
+| Boot (right, left) | `boot_r.glb`, `boot_l.glb` | the ankle | |
+
+Every component is modelled in the suit's own axes (+x is the figure's right hand, y up, the figure **faces -z**, Godot's
+forward) with its limbs hanging straight down; the stance (arms out 12 degrees, elbows bent 15) is data in `REST_DEG` in
+`godot/scripts/astronaut.gd`, not baked in. A component hangs on a **socket**: an empty named `Socket_*` that its host
+component places (a torso with other proportions brings its own sockets), so swapping a part needs no other change. Meshes
+are named `<Pivot>_<Material>` and the materials say what they are: `Suit_White`, `Suit_Grey`, `Undersuit`, `Suit_Orange`,
+`Metal_Dark`, `Rubber`, `Glove`, `Strip_Blue` (the glow), `Indicator_Amber`, `Visor`, `Visor_Glint`, `Logo_Green`, `Logo_Dark`.
+
+`blender/build_astronaut.py` builds the components from code, like the props:
+
+```
+blender -b --factory-startup --python blender/build_astronaut.py -- godot/models/astronaut [component ...]
+godot --headless --path godot --import
+```
+
+(Name components after the `--` to rebuild only those: `torso`, `helmet`, `backpack`, `arm_r`, `arm_l`, `glove_r`, `glove_l`,
+`leg_r`, `leg_l`, `boot_r`, `boot_l`.) Never call `bmesh.ops.bevel` without `profile=0.5`: Blender then makes a square-profile,
+stair-stepped bevel.
+
+`godot/scripts/astronaut.gd` puts the figure together and runs the idle animation (the helmet turns slowly, the chest
+breathes, the arms sway a little: a handful of rotations, no skeleton):
+
+```gdscript
+const Astronaut = preload("res://scripts/astronaut.gd")
+var man := Astronaut.new()
+man.recipe = {"colors": {"Suit_Orange": Color("2f9e6b")}, "hidden": ["Backpack"]}   # every key is optional
+man.position = Vector3(-1.7, 0, 1.6)
+add_child(man)                  # assembles itself on entering the tree
+man.pose(3.0)                   # freeze the idle animation at 3 s (the tests and the screenshots do)
+```
+
+Recipe keys: `parts` `{component: glb path}` swaps a component for another file; `colors` `{material name: Color}`
+recolours (a glowing material changes its glow); `hidden` `[component names]` leaves some out; `skins` `false` leaves the
+surfaces plain; `idle` `false` switches the animation off. A missing file leaves that part out and the rest standing (a
+missing torso leaves a capsule). The boots are grounded automatically, so legs and boots of another length still stand on
+y = 0. The two skins are made from code (`SKINS` in the script), tiled by triplanar mapping so the models need no UVs, and
+shared by every astronaut: the armour is white with scattered chips, the undersuit a woven twill with a normal map.
+
+Checks: `godot/tests/astronaut_test.gd` (every component's origin and sockets, the assembled figure's height, facing and
+footprint, the blue as a small share of the surface, the idle, the two skins, recipes and missing files),
+`godot/tests/shot_astronaut.gd` (front, back, three quarters and close-ups on a bare stage).
+
+## The floating buttons, the voice and the coach
+
+The HUD is built in code (`greenhouse.gd`, `_build_hud()`). Three scripts do the newer parts, and none of them needs more of the scene than
+a `bay`, `BED_CENTERS`, `_slot_offsets`, `_cam`, `selected`, `select_slot()` and the `action_*()` calls, so both farming games use the same files:
+
+- `scripts/slot_buttons.gd`: one `Button` per slot, placed over the top of its plant (`Camera3D.unproject_position`), sized by its
+  distance from the camera, and nudged apart from its neighbours when two would overlap (a thin line then leads back to the plant). What a
+  button says is `SlotButtons.state_of(bay, bed, slot)`, one function of the plant and its bed that the tests and the voice use too. The
+  colours by kind (green Harvest, blue Water, Feed, red Clear, a dim pill for `+` and the growth percentage) are the `palette` it is
+  given. It is the first child of the HUD, so the panels draw over it and take the clicks that fall on them.
+- `scripts/crew_voice.gd`: the lines (`advice()`, `describe_slot()`, `status_line()`), the pauses between them, the caption (a panel
+  along the bottom, `CrewCaption`) and the speech (`DisplayServer.tts_speak`). The astronaut looks where `look_at_point()` says. The
+  scene may add its own notes with a `voice_notes()` method.
+- `scripts/training.gd`: the coach panel on its own `CanvasLayer` above the HUD, a pulsing ring drawn round the control to use (a
+  `StyleBoxFlat` border) or round a plant, and an arrow pointer for "Show me". It takes its colours from the game's `hud_palette`.
+  `scripts/training_driver.gd` has the helpers for the parts about time, shared with the tests.
+
+The LED bars are named `GrowLight0` to `GrowLight3` and hang `LIGHT_HEIGHT` (1.55 m) above the bench. `fade_blocking_lights()` raises the
+`transparency` of any bar that stands between the camera and a slot, and lowers it again when the view moves on.
+
+Checks: `godot/tests/crew_ui_test.gd` (the buttons and the voice, the voice read as text), `godot/tests/training_test.gd` (the coach played
+through as a player and with "Watch it all"), `godot/tests/greenhouse_test.gd` (bar height and fading, a clear start view), and
+`godot/tests/shot_training.gd` (the training at any moment, for looking at it).
 
 ## `FarmSkinGenerator`
 

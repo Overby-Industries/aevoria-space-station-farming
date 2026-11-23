@@ -47,6 +47,20 @@ func find_material(node: Node, material_name: String) -> StandardMaterial3D:
 			return deeper
 	return null
 
+func all_materials(node: Node) -> Array:
+	var out: Array = []
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		for i in (node as MeshInstance3D).mesh.get_surface_count():
+			var m := (node as MeshInstance3D).mesh.surface_get_material(i) as StandardMaterial3D
+			if m != null:
+				out.append(m)
+	for c in node.get_children():
+		out.append_array(all_materials(c))
+	return out
+
+func lm_check(sb: FarmShapeBuilder) -> Node3D:
+	return sb.build_node({"shape": "grow_light", "model": "res://models/grow_light.glb"})
+
 func _initialize() -> void:
 	var sb := FarmShapeBuilder.new()
 
@@ -113,6 +127,41 @@ func _initialize() -> void:
 	check(wb.position.z + wb.size.z > 0.0 and wb.position.z < 0.0, "the panel straddles its mounting plane")
 	check(find_material(wp, "Strip_Emissive") != null, "the panel has its light strip")
 	wp.free()
+
+	# ---- the metallic palette: brushed steel, aluminium, graphite and amber, warm white lights, blue only as a small accent ----
+	var metals := 0
+	var blue_surfaces: Array = []
+	var cool_lights: Array = []
+	var props := {"planter_tray": "planter_tray.glb", "grow_light": "grow_light.glb", "water_tank": "water_tank.glb", "seed_crate": "seed_crate.glb", "wall_panel": "wall_panel.glb"}
+	for key in props:
+		var prop: Node3D = sb.build_node({"shape": "box", "model": "res://models/" + props[key]})
+		for any_mat in all_materials(prop):
+			var mat: StandardMaterial3D = any_mat
+			var c: Color = mat.albedo_color
+			if mat.emission_enabled:
+				# a glow is warm white, or (the tank's level gauge) one small blue-green status light
+				if mat.resource_name != "Gauge_Emissive" and mat.emission.b > mat.emission.r + 0.05:
+					cool_lights.append(mat.resource_name)
+			elif mat.resource_name != "Soil_Dark":
+				if c.b > c.r + 0.06:
+					blue_surfaces.append(mat.resource_name)
+				if mat.metallic >= 0.5:
+					metals += 1
+		prop.free()
+	check(blue_surfaces.is_empty(), "no prop surface is tinted blue (%s)" % str(blue_surfaces))
+	check(cool_lights.is_empty(), "every light but the gauge glows warm white, not blue or pink (%s)" % str(cool_lights))
+	check(metals >= 12, "the props are metal: %d metallic surfaces" % metals)
+	var tray_node: Node3D = sb.build_node({"shape": "box", "model": "res://models/planter_tray.glb"})
+	check(find_material(tray_node, "Trim_Amber") != null, "the trim is amber now")
+	tray_node.free()
+	var light_node: Node3D = lm_check(sb)
+	var led_mat := find_material(light_node, "LED_Emissive")
+	check(led_mat != null and led_mat.emission.r > 0.9 and led_mat.emission.b < led_mat.emission.r, "the grow lights are warm white")
+	light_node.free()
+	var proc_light: Node3D = sb.build_node({"shape": "grow_light"})
+	var procedural_led: StandardMaterial3D = proc_light.get_meta("led_material")
+	check(procedural_led.emission.r > 0.9 and procedural_led.emission.b < procedural_led.emission.r, "and so is the procedural light that the model replaces")
+	proc_light.free()
 
 	print("\n%d checks, %d failures" % [checks, failures])
 	quit(0 if failures == 0 else 1)

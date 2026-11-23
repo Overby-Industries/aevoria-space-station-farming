@@ -33,14 +33,25 @@ there is and how good it is.
   factor over its life.
 
 **The game slice** (`godot/scenes/greenhouse.tscn`): four beds of eight slots on two benches, a grow light over
-each, a water tank, a window onto Earth. Select a slot, sow it or the bed, water, feed, harvest, clear. HUD:
-day and clock, temperature, power, water, nutrient stock, harvest totals, LED brightness, automatic irrigation,
-time controls from pause to 64x.
+each (hung 1.55 m above the bench, clear of every crop, and faded to a ghost when it would hide a slot), a water tank, a
+window onto Earth, and a crew astronaut on the walkway looking over the beds. The room is brushed steel, graphite and
+aluminium with amber trim and warm-white light; blue is a small accent. Over every slot floats a **button** that says what its
+plant needs next (`+` to sow, the growth percentage, Water, Feed, Harvest or Clear) and does it when pressed
+(`scripts/slot_buttons.gd`; what a button says is one function of the plant and its bed, `SlotButtons.state_of`, which the tests and the
+voice read too). Select a slot, sow it or the bed, water, feed, harvest, clear. HUD: day and clock, temperature, power, water,
+nutrient stock, harvest totals, LED brightness, automatic irrigation, time controls from pause to 64x, Ask crew and How to play.
+
+**The crew voice** (`scripts/crew_voice.gd`) turns the same states into words: what to do next (in this order: a harvest waiting, a dead
+plant, a dry bed, a hungry bed, the water and nutrient stores, the power budget, news, empty slots, a round of the plants), a
+description of whatever is selected, and an answer to Ask crew. It is spoken by the operating system's text-to-speech and
+captioned, and the astronaut looks at what it is talking about. **The training** (`scenes/training.tscn`, `scripts/training.gd`) hosts the
+real game with a coach panel and plays it through in six lessons (sow, grow, dry, harvest, select, ask), using the same helpers
+(`scripts/training_driver.gd`) as the test that drives the real scene through those steps (`tests/crew_ui_test.gd`).
 
 ## What does not exist yet
 
-Crew food demand and a reason to grow one crop over another, equipment faults and events, a save file, sound,
-and any tuning beyond a first guess. The Blender-modelled props do exist (planter, light, tank, crate and wall
+Crew food demand and a reason to grow one crop over another (the astronaut is the first crew member to be given
+one), equipment faults and events, a save file, sound effects and music (the crew speaks, but nothing else makes a noise), and any tuning beyond a first guess. The Blender-modelled props do exist (planter, light, tank, crate and wall
 panel; see [GRAPHICS_GUIDE.md](GRAPHICS_GUIDE.md)). The Mars version lives in its own repository, started as a
 copy of this core, and adds a sun, dust storms and a shade to the LEDs; the two share no library yet.
 
