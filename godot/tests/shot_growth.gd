@@ -10,6 +10,8 @@ extends SceneTree
 #   view: default (the camera the game starts with), `at:x,y,z:distance:yaw:pitch` (look at any point from there),
 #         `wide` (pulled back to take in the whole room) or `window` (turned to face the window).
 #   idle_seconds: where the astronaut's idle animation is frozen (default 3.0).
+const Prefs = preload("res://scripts/prefs.gd")
+
 func _initialize() -> void:
 	_run()
 func _run() -> void:
@@ -19,9 +21,13 @@ func _run() -> void:
 	var days := int(args[1]) if args.size() > 1 else 40
 	var view: String = args[2] if args.size() > 2 else "default"
 	var idle_t := float(args[3]) if args.size() > 3 else 3.0
+	Prefs.path = "user://shot_prefs.cfg"      # the picture starts a colony: its choices go to a scratch file, never the player's own
 	var scene: Node3D = (load("res://scenes/greenhouse.tscn") as PackedScene).instantiate()
+	scene.ask_difficulty = false              # no difficulty picker over the picture
 	root.add_child(scene)
 	await process_frame
+	scene.set_speed(0.0)
+	scene.colony_ui.choose(1, false)          # an Intermediate colony, so the bar along the top shows
 	scene.set_speed(0.0)
 	var crops := ["lettuce", "radish", "tomato", "potato"]
 	for b in 4:
@@ -71,4 +77,5 @@ func _run() -> void:
 	var path := ProjectSettings.globalize_path("res://shots/%s" % (shot_name if jpg else shot_name + ".png"))
 	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
 	print("saved ", path, " err=", img.save_jpg(path, 0.88) if jpg else img.save_png(path))
+	Prefs.erase()
 	quit(0)

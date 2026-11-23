@@ -49,6 +49,7 @@ const EARTH_RADIUS := 22.0
 
 const SlotButtons = preload("res://scripts/slot_buttons.gd")
 const CrewVoice = preload("res://scripts/crew_voice.gd")
+const ColonyUI = preload("res://scripts/colony_ui.gd")
 const TRAINING_SCENE := "res://scenes/training.tscn"      # the how-to-play training for new players (scripts/training.gd)
 
 var bay := FarmBay.new()
@@ -56,6 +57,10 @@ var builder := FarmShapeBuilder.new()
 var slot_buttons: Control                  # the floating buttons over the slots (scripts/slot_buttons.gd)
 var voice: Node                            # the crew member's voice (scripts/crew_voice.gd)
 var hud_palette := {}                       # the HUD's accent, panel and text colours; the training scene dresses its coach panel to match
+var colony_ui: Control                     # the colony bar, the difficulty picker, the ending and the leaderboard (scripts/colony_ui.gd); none while the training hosts the game
+var ask_difficulty := DisplayServer.get_name() != "headless"      # open the difficulty picker with the scene; headless runs (the tests) start as a sandbox
+var colony_place := "station"                    # how the ending texts name the place
+var colony_tuning := {}                    # scales for what this bay can grow, by difficulty: {"demand": [...], "reserve": [...]}, 1.0 when absent
 var astronaut: Node3D
 var astronaut_recipe := {}                  # optional look of the crew member (scripts/astronaut.gd lists the keys); set before the scene enters the tree
 
@@ -804,12 +809,31 @@ func _build_hud() -> void:
 	hud_palette = {"accent": COL_AMBER, "panel": COL_PANEL, "text": COL_ALU}
 	voice.setup(self, astronaut, root, hud_palette)
 
-# What the crew voice may add to its usual advice (scripts/crew_voice.gd calls this): the station's power budget.
+	# the colony: its bar, the choice of difficulty and voice, the ending and the leaderboard (the training hosts the game without one)
+	if not has_meta("training"):
+		colony_ui = ColonyUI.new()
+		root.add_child(colony_ui)
+		colony_ui.setup(self, hud_palette, ask_difficulty)
+
+# What the crew voice may add to its usual advice (scripts/crew_voice.gd calls this): the colony's food, the station's power budget.
 func voice_notes() -> Array:
+	var notes: Array = colony_ui.voice_notes() if colony_ui != null else []
+	notes.append_array(_power_notes())
+	return notes
+
+func _power_notes() -> Array:
 	var s := bay.get_status()
 	if s["lights_on"] and s["power_demand_w"] > s["power_budget_w"] * 1.001:
 		return [{"key": "power", "text": "We are over the power budget, so the lights on every bed are dimmed. Turn the LED brightness down to save power."}]
 	return []
+
+# What cannot wait (scripts/crew_voice.gd calls this): the colony is out of food.
+func urgent_notes() -> Array:
+	return colony_ui.urgent_notes() if colony_ui != null else []
+
+# While the difficulty picker, an ending or the leaderboard covers the game, the crew does not chat (scripts/crew_voice.gd asks).
+func voice_held() -> bool:
+	return colony_ui != null and ["picker", "ending", "board"].has(colony_ui.phase)
 
 func _refresh_hud() -> void:
 	if _status_label == null:
