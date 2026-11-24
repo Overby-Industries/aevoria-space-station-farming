@@ -80,6 +80,30 @@ mode's multiplier, never below zero. The strategies above score about 3,500 for 
 **The leaderboard** (`scripts/leaderboard.gd`): the ten best runs for each mode, in `user://leaderboard.json` on this PC only; nothing is sent anywhere. An
 online board would need a server to send scores to, and `submit()` and `entries()` are all the game calls.
 
+## The settlement: more greenhouses
+
+The colony's food buys it room, and the rules are in `core/colony.hpp` (all design values, pinned by `tests/test_colony.cpp`):
+
+| | |
+|---|---|
+| Housing | each greenhouse houses `ceil(crew x 1.5)` people: 6, 12 or 18 |
+| Expansion offered | the store holds 30 days of food, the farm has grown at least 10 days of the crew's food, nobody is hungry, and a site is free (four) |
+| What building costs | 10 days of the crew's food. The new greenhouse is a bay linked to the first (`Bay::link_colony`): what it harvests and the plants it loses count for the same colony, and the colony's clock is the first bay's alone |
+| Arrivals | every 6 days of plenty: the store holds 40 days or more, the colony is at least 20 days old, and what the farm grew over the last 105 days (a growing season) is 1.5 times what the crew needed over them, and would still be counting the newcomers' appetite. As many as the housing allows, in batches of 2, 3 or 4 |
+| Score | 20 points a colonist who has arrived, 400 a greenhouse built |
+
+Why it is built like this. The first version let people arrive whenever the store was large, and the colony died of it: the reserve it starts with counts
+as plenty, so the crew grew until the food ran out. Counting only what the farm itself has grown, over a whole growing season, and only for as many people as
+that harvest would still have fed, keeps the calibrated strategies winning as they did: with nothing built they see few or no newcomers, and the same
+strategies with a greenhouse built as soon as the colony may have one win too, only bigger (`play_grown()` in the tests). Building is also how a colony wins what
+one greenhouse cannot: lettuce alone fails Intermediate and Difficult in one greenhouse and wins them in four.
+
+**The settlement** is `scripts/settlement.gd`: a node under the window root that keeps every greenhouse's bay (so they go on growing while the player looks at the
+overview or is in another greenhouse), one clock for all of them, and `build(site)`. The first time the player opens the overview, the farm scene hands its own bay
+over as the first unit; a new game or the training clears it. **The overview** (`scenes/settlement.tscn`, `scripts/settlement_view.gd`) shows the sites, selects one with a
+click, builds, and goes into a greenhouse; how it looks (the station, its arms and collars) is `scripts/settlement_look.gd`, the one part that differs between the games.
+`tests/settlement_test.gd` plays it through: farm until the colony may build, open the overview, pick a site, build, harvest in the new greenhouse, walk into it and back.
+
 ## What does not exist yet
 
 Equipment faults and events, an online leaderboard, a save file, sound effects and music (the crew speaks, but nothing else makes a noise), and any tuning beyond a first guess. The Blender-modelled props do exist (planter, light, tank, crate and wall

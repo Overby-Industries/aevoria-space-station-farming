@@ -50,6 +50,9 @@ const EARTH_RADIUS := 22.0
 const SlotButtons = preload("res://scripts/slot_buttons.gd")
 const CrewVoice = preload("res://scripts/crew_voice.gd")
 const ColonyUI = preload("res://scripts/colony_ui.gd")
+const Settlement = preload("res://scripts/settlement.gd")
+const SETTLEMENT_SCENE := "res://scenes/settlement.tscn"      # the overview of the units and the sites for new ones (scripts/settlement_view.gd)
+const MAX_SITES := 4                                            # sites for greenhouses on the overview
 const TRAINING_SCENE := "res://scenes/training.tscn"      # the how-to-play training for new players (scripts/training.gd)
 
 var bay := FarmBay.new()
@@ -57,6 +60,9 @@ var builder := FarmShapeBuilder.new()
 var slot_buttons: Control                  # the floating buttons over the slots (scripts/slot_buttons.gd)
 var voice: Node                            # the crew member's voice (scripts/crew_voice.gd)
 var hud_palette := {}                       # the HUD's accent, panel and text colours; the training scene dresses its coach panel to match
+var unit_index := 0                        # which unit of the settlement this scene shows (the first, unless the overview sent the player to another)
+var colony_bay: FarmBay                    # the bay that holds the colony: the first unit's, whichever unit this scene shows
+var unit_noun := "greenhouse"              # what a unit is called here
 var colony_ui: Control                     # the colony bar, the difficulty picker, the ending and the leaderboard (scripts/colony_ui.gd); none while the training hosts the game
 var ask_difficulty := DisplayServer.get_name() != "headless"      # open the difficulty picker with the scene; headless runs (the tests) start as a sandbox
 var colony_place := "station"                    # how the ending texts name the place
@@ -107,13 +113,27 @@ var _led_slider: HSlider
 var _toast: Label
 var _toast_time := 0.0
 
-func _ready() -> void:
-	_species = bay.get_species_list()
-	bay.name = "Bay"
-	add_child(bay)
+# A bay as this game's units are: four beds of eight slots (the settlement builds every unit after the first with this).
+static func make_bay() -> FarmBay:
+	var b := FarmBay.new()
 	for i in BED_CENTERS.size():
-		bay.add_bed(BED_ROWS, BED_COLS, 0.72)
-	bay.time_scale = 4.0
+		b.add_bed(BED_ROWS, BED_COLS, 0.72)
+	b.time_scale = 4.0
+	return b
+
+func _ready() -> void:
+	var st: Node = null if has_meta("training") else Settlement.peek()
+	bay.free()                                    # (the default one: this scene gets its own below, or a unit of the settlement)
+	if st != null and st.has_unit(st.current):    # a settlement is under way: this scene shows one of its units
+		unit_index = st.current
+		bay = st.unit_bay(unit_index)
+		colony_bay = st.primary()
+	else:
+		bay = make_bay()
+		bay.name = "Bay"
+		add_child(bay)
+		colony_bay = bay
+	_species = bay.get_species_list()
 	bay.plant_stage_changed.connect(_on_stage_changed)
 	bay.plant_died.connect(func(b, s): _say("A plant in bed %d died" % (b + 1)))
 
@@ -534,7 +554,19 @@ func action_remove() -> bool:
 	return ok
 
 func set_speed(hours_per_second: float) -> void:
-	bay.time_scale = hours_per_second
+	var st := Settlement.peek()
+	if st != null and not has_meta("training"):
+		st.set_speed(hours_per_second)                     # every unit keeps the same clock
+	else:
+		bay.time_scale = hours_per_second
+
+# The overview of the settlement: its units, and the sites for new ones. The first visit hands this scene's bay over as the first unit.
+func open_settlement() -> void:
+	var st = Settlement.get_or_create(get_tree())
+	if st.units.is_empty():
+		st.adopt(bay, Callable(get_script(), "make_bay"), MAX_SITES)
+	st.current = unit_index
+	get_tree().change_scene_to_file(SETTLEMENT_SCENE)
 
 # ---------------------------------------------------------------------------------------------------------
 # visuals that follow the simulation
@@ -718,7 +750,7 @@ func _build_hud() -> void:
 	root.add_child(left)
 	var lbox := _panel(left)
 	lbox.custom_minimum_size = Vector2(290, 0)
-	_label(lbox, "HYDROPONICS BAY 1", 16, COL_AMBER)
+	_label(lbox, "HYDROPONICS BAY %d" % (unit_index + 1), 16, COL_AMBER)
 	_status_label = _label(lbox, "")
 	_label(lbox, "Water tank", 12, COL_LABEL)
 	_tank_bar = _bar(lbox, Color("3aa0e0"))

@@ -6,9 +6,9 @@ will eat. Part of the Aevoria universe (the Aevoric Commonwealth, zero-waste, et
 with a C++ GDExtension, in the same code-generated graphics style as
 [Aevoria Simulator](https://github.com/Overby-Industries/aevoria-simulator).
 
-**Status: an early start.** One bay, four crops, a growth model with tests, procedural plants and props, a playable
+**Status: an early start.** A bay that grows into a station of up to four greenhouses, four crops, a growth model with tests, procedural plants and props, a playable
 greenhouse scene with a floating button over every crop, a crew astronaut built from modular suit components who talks you
-through the farm, a short training for new players, and a colony to feed on three difficulties, with a score and a leaderboard. Not a finished game. See
+through the farm, a short training for new players, and a colony to feed on three difficulties that grows with the food, with a score and a leaderboard. Not a finished game. See
 [docs/DESIGN.md](docs/DESIGN.md) for what exists and what does not.
 
 ![The hydroponics bay after 40 days of play: a floating button over every slot says Harvest, Water or how far the plant has grown, and the crew astronaut on the walkway describes the plant that is selected](docs/greenhouse.jpg)
@@ -21,9 +21,9 @@ status lights.
 
 | Path | What it is |
 |---|---|
-| `core/` | The farm simulation in plain C++17, header-only, no Godot types: `species.hpp` (the crops), `plant.hpp` (growth, stress, harvest), `bay.hpp` (beds, lights, sun, water, nutrients, clock), `colony.hpp` (the colony: food, hunger, the three difficulties, the score) |
+| `core/` | The farm simulation in plain C++17, header-only, no Godot types: `species.hpp` (the crops), `plant.hpp` (growth, stress, harvest), `bay.hpp` (beds, lights, sun, water, nutrients, clock), `colony.hpp` (the colony: food, hunger, the three difficulties, the score, the people and the room to grow) |
 | `src/` | The GDExtension: `FarmBay` (the simulation as a node), `FarmShapeBuilder` (recipe to 3D shape), `FarmSkinGenerator` (recipe to texture), plus the mesh and plant geometry code |
-| `godot/` | The Godot project: `scenes/greenhouse.tscn` (the game slice), `scenes/training.tscn` (the training for new players), `scenes/showcase.tscn` (every crop at every stage), `scripts/` (including `slot_buttons.gd`, the floating buttons over the slots, `crew_voice.gd`, the crew member's voice, `training.gd`, the coach, `colony_ui.gd` and `leaderboard.gd`, the colony screens, and `astronaut.gd`, which assembles the crew member), `models/` (the Blender props as `.glb`, and the astronaut's eleven suit components in `models/astronaut/`), `tests/` |
+| `godot/` | The Godot project: `scenes/greenhouse.tscn` (the game slice), `scenes/training.tscn` (the training for new players), `scenes/showcase.tscn` (every crop at every stage), `scripts/` (including `slot_buttons.gd`, the floating buttons over the slots, `crew_voice.gd`, the crew member's voice, `training.gd`, the coach, `colony_ui.gd` and `leaderboard.gd`, the colony screens, `settlement.gd`, `settlement_view.gd` and `settlement_look.gd`, the greenhouses and the overview where new ones are built, and `astronaut.gd`, which assembles the crew member), `models/` (the Blender props as `.glb`, and the astronaut's eleven suit components in `models/astronaut/`), `tests/` |
 | `blender/` | `build_assets.py` builds the props in `godot/models/` from code; `build_astronaut.py` builds the suit's components in `godot/models/astronaut/` |
 | `tests/` | The C++ test suite for `core/` (CMake) |
 | `docs/` | [DESIGN.md](docs/DESIGN.md) and [GRAPHICS_GUIDE.md](docs/GRAPHICS_GUIDE.md) |
@@ -92,6 +92,27 @@ after an ending, and *Sandbox* in the picker skips the colony altogether. The ma
 
 ![A colony kept fed for 120 days: the ending, the score by its parts, and a name for the leaderboard](docs/ending.jpg)
 
+## More greenhouses: the settlement
+
+![The station seen from above: a greenhouse on two of the four docking arms, and a glowing collar on the others where the next may be built](docs/settlement.jpg)
+
+A colony that is fed well can grow. The **Settlement** button on the colony bar (it turns amber and says *BUILD* when the colony has food to spare)
+opens the station seen from above: the hub, four docking arms, and a greenhouse module on every arm that has been built. Click a greenhouse to see how
+it is doing and press **Enter** to farm in it; click a free arm and press **Build** to put a new greenhouse there. Every greenhouse is a bay of its own, with
+four beds, its own water and nutrients and its own settings, but they run on one clock and feed one crew: whatever any of them harvests goes into the colony's store.
+
+The food decides how the station grows (`core/colony.hpp`; every number is a design value):
+
+| | |
+|---|---|
+| **Expansion** | A new greenhouse may be built once the store holds 30 days of food and the farm has grown at least ten days' worth of what the crew eats. Building costs ten days of the crew's food. The station has four arms. |
+| **Housing** | A greenhouse houses one and a half crews: 6, 12 or 18 people, by mode. |
+| **Growth** | When the farm has grown half as much again as the crew needs over the last growing season (105 days, about as long as the slowest crop takes), with 40 days of food in store, and would still have done so counting the newcomers' appetite, more people arrive every six days, in batches of 2, 3 or 4, up to what the greenhouses house. |
+| **Score** | 20 points for each person who arrives and 400 for each greenhouse built. |
+
+A colony that only just feeds itself never grows, so the three modes are as hard as they were unless you choose to expand, and expanding is how a hard mode
+is won with simple farming: lettuce alone fails Intermediate and Difficult in one greenhouse and wins them in four (`tests/test_colony.cpp` plays both).
+
 ## Training for new players
 
 ![The training: the coach panel over the real game, with a ring on the Water button of the bed that has run dry](docs/training.jpg)
@@ -138,6 +159,7 @@ godot --headless --path godot -s res://tests/greenhouse_test.gd
 godot --headless --path godot -s res://tests/crew_ui_test.gd
 godot --headless --path godot -s res://tests/training_test.gd
 godot --headless --path godot -s res://tests/colony_ui_test.gd
+godot --headless --path godot -s res://tests/settlement_test.gd
 ```
 
 On a fresh checkout the first `--import` can exit with a crash code (on Windows with Godot 4.6.3 it does, from
@@ -151,7 +173,7 @@ last number is the second of the astronaut's idle animation to freeze (11 s has 
 `shot_astronaut.gd -- astronaut.jpg 0 front,back,three_quarter`), and `shot_training.gd` photographs the training at one moment
 (the picture of the training is `shot_training.gd -- training.jpg dry`; the others are `welcome`, `sow`, `sow2`, `grow`, `harvest`,
 `select`, `ask`, `finish` and `watch`), and `shot_colony.gd` photographs the colony screens (`shot_colony.gd -- difficulty.jpg picker`; the others are `bar`,
-`ending`, `success` and `board`).
+`ending`, `success` and `board`), and `shot_settlement.gd` photographs the overview (`shot_settlement.gd -- settlement.jpg built site=2`; the moments are `fresh`, `ready`, `select`, `built` and `full`).
 
 ## Release to itch.io
 

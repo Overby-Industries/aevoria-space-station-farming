@@ -188,6 +188,20 @@ Recipe keys: `kind` (`cellular`, `soil`, `panel`), `seed`, `frequency`, `dark_co
 `highlight_color`; `panel` also takes `cells` and `seam_color`. The same seed always gives the same texture.
 With rust colours, `soil` is Martian regolith.
 
+## The overview: the settlement seen from above
+
+`scripts/settlement_view.gd` is the same in both games and builds nothing itself but the HUD, the camera and the pick; everything you see comes from the game's
+`scripts/settlement_look.gd`, which supplies `build_world()`, `make_pad(i)` (a free site), `make_unit(i)` (a greenhouse) and the little functions that colour a site by its
+state. The station's:
+
+- **space**: a procedural star sky (a panorama painted into an `Image`), and the Earth as a sphere of a noise-textured colour ramp (ocean, green, desert, ice) with a second,
+  slightly larger sphere of cloud noise and a third of unshaded blue haze for the edge of the air;
+- **the hub**: a drum with an amber band and a ring of lit windows, a glass cap and an antenna; four **arms** of 2.8 m boxes with amber stripes, window slots and a docking port at the end;
+- **a free site** is an amber torus collar with four beacons and a faint ghost of the greenhouse; it brightens and pulses when a greenhouse may be built there, and goes grey when it may not;
+- **a greenhouse** is a collar sleeve, a glass cylinder with ribs and green beds inside, a domed end, and solar wings on struts, with a green light inside. It pops up over most of a second when built.
+
+The camera looks down at 41 degrees from 100 m; right-drag orbits and the wheel zooms.
+
 ## Adding a crop
 
 1. Add a row to `kSpecies` in `core/species.hpp` (the tests check the table is well formed).
